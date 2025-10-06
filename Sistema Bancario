@@ -1,0 +1,246 @@
+
+\\Package ContaBancaria
+\\Arquivo ContaBancaria 
+package ContaBancaria;
+
+public abstract class ContaBancaria {
+   private final int numero;
+   private Cliente titular;
+   private double saldo;
+
+   public ContaBancaria(int numero, Cliente titular) {
+       this.numero = numero;
+       this.titular = titular;
+       this.saldo = 0.0;
+   }
+
+   public ContaBancaria(int numero, Cliente titular, double depositoInicial) {
+       this.numero = numero;
+       this.titular = titular;
+       depositar(depositoInicial);
+   }
+
+   public final int getNumero() {
+       return numero;
+   }
+
+   public final Cliente getTitular() {
+       return titular;
+   }
+
+   public final double getSaldo() {
+       return saldo;
+   }
+
+   public final void setTitular(Cliente titular) {
+       this.titular = titular;
+   }
+
+   public final void depositar(double quantia) {
+       if (quantia > 0) {
+           saldo += quantia;
+       }
+   }
+
+   public abstract void sacar(double quantia);
+
+   public final void imprimirComprovante() {
+       System.out.println("=== COMPROVANTE BANCÁRIO ===");
+       System.out.println(this.toString());
+       System.out.println("============================");
+   }
+
+   @Override
+   public String toString() {
+       return "Conta " + numero +
+               ", Titular: " + titular.getNome() +
+               ", Saldo: R$ " + String.format("%.2f", saldo);
+   }
+
+   protected final void setSaldo(double saldo) {
+       this.saldo = saldo;
+   }
+}
+
+\\Arquivo Main
+package ContaBancaria;
+
+import java.util.Scanner;
+
+public class Main {
+   public static void main(String[] args) {
+       Scanner sc = new Scanner(System.in);
+
+       System.out.print("Informe o nome do cliente: ");
+       String nome = sc.nextLine();
+
+       System.out.print("Informe o CPF do cliente: ");
+       String cpf = sc.nextLine();
+
+       Cliente cliente = new Cliente(nome, cpf);
+
+       System.out.print("Escolha o tipo de conta (1-Corrente, 2-Poupança): ");
+       int tipoConta = sc.nextInt();
+
+       System.out.print("Informe o número da conta: ");
+       int numero = sc.nextInt();
+       sc.nextLine();
+
+       System.out.print("Possui depósito inicial (s/n)? ");
+       char resposta = sc.next().charAt(0);
+
+       ContaBancaria conta;
+
+       if (tipoConta == 1) {
+           if (resposta == 's' || resposta == 'S') {
+               System.out.print("Informe o valor de depósito inicial: ");
+               double depositoInicial = sc.nextDouble();
+               conta = new ContaCorrente(numero, cliente, depositoInicial);
+           } else {
+               conta = new ContaCorrente(numero, cliente);
+           }
+       } else {
+           if (resposta == 's' || resposta == 'S') {
+               System.out.print("Informe o valor de depósito inicial: ");
+               double depositoInicial = sc.nextDouble();
+               conta = new ContaPoupanca(numero, cliente, depositoInicial);
+           } else {
+               conta = new ContaPoupanca(numero, cliente);
+           }
+       }
+
+       System.out.println("\nDados da conta:");
+       System.out.println(conta.toString());
+
+       System.out.print("\nInforme o valor para depósito: ");
+       double deposito = sc.nextDouble();
+       conta.depositar(deposito);
+       System.out.println("Dados da conta atualizados:");
+       System.out.println(conta.toString());
+
+       System.out.print("\nInforme o valor para saque: ");
+       double saque = sc.nextDouble();
+       conta.sacar(saque);
+       System.out.println("Dados da conta atualizados:");
+       System.out.println(conta.toString());
+
+       if (conta instanceof ContaPoupanca) {
+           ContaPoupanca poupanca = (ContaPoupanca) conta;
+           poupanca.renderJuros();
+           System.out.println("Após rendimento:");
+           System.out.println(conta.toString());
+       }
+
+       System.out.println("\nComprovante final:");
+       conta.imprimirComprovante();
+
+       sc.close();
+   }
+}
+
+\\Arquivo Cliente
+package ContaBancaria;
+
+public class Cliente {
+   private String nome;
+   private String cpf;
+
+   public Cliente(String nome, String cpf) {
+       this.nome = nome;
+       this.cpf = cpf;
+   }
+
+   public String getNome() {
+       return nome;
+   }
+
+   public void setNome(String nome) {
+       this.nome = nome;
+   }
+
+   public String getCpf() {
+       return cpf;
+   }
+
+   public void setCpf(String cpf) {
+       this.cpf = cpf;
+   }
+
+   @Override
+   public String toString() {
+       return "Nome: " + nome + ", CPF: " + cpf;
+   }
+}
+
+\\Arquivo ContaCorrente
+package ContaBancaria;
+
+public class ContaCorrente extends ContaBancaria {
+   private static final double TAXA_SAQUE = 5.00;
+   private static final double LIMITE_NEGATIVO = -50.00;
+
+   public ContaCorrente(int numero, Cliente titular) {
+       super(numero, titular);
+   }
+
+   public ContaCorrente(int numero, Cliente titular, double depositoInicial) {
+       super(numero, titular, depositoInicial);
+   }
+
+   @Override
+   public void sacar(double quantia) {
+       double valorTotal = quantia + TAXA_SAQUE;
+       double saldoAtual = getSaldo();
+
+       if (saldoAtual - valorTotal >= LIMITE_NEGATIVO) {
+           setSaldo(saldoAtual - valorTotal);
+           System.out.println("Saque de R$ " + quantia + " realizado. Taxa: R$ " + TAXA_SAQUE);
+       } else {
+           System.out.println("Saldo insuficiente! Limite negativo máximo: R$ " + (-LIMITE_NEGATIVO));
+       }
+   }
+
+   @Override
+   public String toString() {
+       return "Conta Corrente - " + super.toString();
+   }
+}
+
+\\Arquivo ContaPoupanca
+package ContaBancaria;
+
+public class ContaPoupanca extends ContaBancaria {
+   private static final double TAXA_RENDIMENTO = 0.005; // 0,5%
+
+   public ContaPoupanca(int numero, Cliente titular) {
+       super(numero, titular);
+   }
+
+   public ContaPoupanca(int numero, Cliente titular, double depositoInicial) {
+       super(numero, titular, depositoInicial);
+   }
+
+   @Override
+   public void sacar(double quantia) {
+       double saldoAtual = getSaldo();
+
+       if (saldoAtual >= quantia) {
+           setSaldo(saldoAtual - quantia);
+           System.out.println("Saque de R$ " + quantia + " realizado.");
+       } else {
+           System.out.println("Saldo insuficiente! Não é permitido saldo negativo.");
+       }
+   }
+
+   public void renderJuros() {
+       double saldoAtual = getSaldo();
+       double rendimento = saldoAtual * TAXA_RENDIMENTO;
+       setSaldo(saldoAtual + rendimento);
+       System.out.println("Rendimento aplicado: R$ " + String.format("%.2f", rendimento));
+   }
+
+   @Override
+   public String toString() {
+       return "Conta Poupança - " + super.toString();
+   }
+}
